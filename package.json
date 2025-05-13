@@ -1,0 +1,19 @@
+{
+  "name": "book-library-k8s",
+  "version": "1.0.0",
+  "private": true,
+  "scripts": {
+    "start": "docker-compose up",
+    "build": "docker-compose build",
+    "dev": "docker-compose up",
+    "down": "docker-compose down"
+  },
+  "keywords": [
+    "mern",
+    "kubernetes",
+    "docker",
+    "minikube"
+  ],
+  "author": "",
+  "license": "MIT"
+}
