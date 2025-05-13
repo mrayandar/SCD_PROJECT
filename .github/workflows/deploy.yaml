@@ -1,0 +1,50 @@
+name: Build and Deploy to Minikube
+
+on:
+  push:
+    branches:
+      - main
+
+jobs:
+  build-deploy:
+    runs-on: self-hosted
+
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v3
+
+    - name: Set up Docker to use Minikube's environment
+      run: |
+        echo "Configuring Docker to use Minikube's daemon..."
+        eval $(minikube docker-env)
+
+    - name: Build Backend Docker image
+      run: |
+        docker build -t ${{ secrets.DOCKER_USERNAME }}/book-library-backend:latest ./app/backend
+
+    - name: Build Frontend Docker image
+      run: |
+        docker build -t ${{ secrets.DOCKER_USERNAME }}/book-library-frontend:latest ./app/frontend
+
+    - name: Login to Docker Hub
+      run: echo "${{ secrets.DOCKER_PASSWORD }}" | docker login -u "${{ secrets.DOCKER_USERNAME }}" --password-stdin
+
+    - name: Push Backend Docker image to Docker Hub
+      run: docker push ${{ secrets.DOCKER_USERNAME }}/book-library-backend:latest
+
+    - name: Push Frontend Docker image to Docker Hub
+      run: docker push ${{ secrets.DOCKER_USERNAME }}/book-library-frontend:latest
+
+    - name: Create namespace if not exists
+      run: |
+        kubectl create namespace booklib --dry-run=client -o yaml | kubectl apply -f -
+
+    - name: Deploy to Minikube
+      run: |
+        sed -i "s/\${DOCKER_USERNAME}/${{ secrets.DOCKER_USERNAME }}/g" deployment.yaml
+        kubectl apply -f deployment.yaml -n booklib
+        kubectl apply -f service.yaml -n booklib
+
+    - name: Verify deployment
+      run: |
+        kubectl get pods,services,deployments -n booklib -o wide
